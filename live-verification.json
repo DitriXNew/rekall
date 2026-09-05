@@ -1,0 +1,47 @@
+{
+  "package": "@ditrixnew/rekall",
+  "version": "0.3.0",
+  "verifiedOn": "2026-09-05",
+  "scope": "Local release verification; no remote CI or registry publication is implied.",
+  "privacy": "Thread, job, compaction and turn identifiers, paths, fingerprints and handoff contents are intentionally omitted. The original local journal was inspected by the resumed agent; this record is a summary, not independently verifiable raw evidence.",
+  "live": {
+    "platform": "win32-x64",
+    "extensionVersion": "26.901.22334",
+    "status": "resumed",
+    "jobNumber": 1,
+    "compactionIdPresent": true,
+    "compactionCompletedAtPresent": true,
+    "resumeTurnIdPresent": true,
+    "savedHandoffReadByResumedAgent": true,
+    "savedMarkerMatched": true,
+    "contextTokensBefore": 102826,
+    "contextTokensAfter": 10537,
+    "modelContextWindowAfter": 760000,
+    "tokensReclaimed": 92289,
+    "reclaimedFraction": 0.8975259175694863,
+    "contextWindowUsedFraction": 0.013864473684210525,
+    "compactionDurationMs": 87497,
+    "resumeDelayMs": 908,
+    "publicSchemaStatus": "compatible",
+    "publicLifecycle": ["item/started", "item/completed"],
+    "internalRuntimeStatus": "compatible",
+    "internalCompletionFieldObserved": true
+  },
+  "checks": {
+    "windowsTests": [
+      {"nodeVersion": "20.20.2", "passed": 32, "failed": 0},
+      {"nodeVersion": "24.6.0", "passed": 32, "failed": 0}
+    ],
+    "pluginManifestValidation": "passed",
+    "skillValidation": "passed",
+    "temporaryPackageInstallAndMcpInitializeOnNode20": "passed",
+    "packageAllowlistAndPrivateDataScan": "passed",
+    "gitDiffCheck": "passed"
+  },
+  "limits": [
+    "This release has one observed live compaction/resume sample; it does not establish a latency distribution or a worst-case duration.",
+    "The 15-minute worker deadline includes idle waiting and has not been validated across representative large threads.",
+    "The current revision was not tested locally on Linux because WSL could not start; Windows/Linux Node 20/22 CI is configured but has not yet run.",
+    "Internal extension IPC is verified only for the recorded Windows extension version."
+  ]
+}

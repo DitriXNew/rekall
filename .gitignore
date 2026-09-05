@@ -1,0 +1,12 @@
+# Private runtime data and local configuration must not enter the repository.
+jobs/
+*.handoff.json
+live-handoff.json
+config.before.toml
+.env
+.env.*
+node_modules/
+*.tgz
+coverage/
+.DS_Store
+npm-debug.log*
