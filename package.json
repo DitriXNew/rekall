@@ -4,7 +4,7 @@
   "description": "Deliberate Codex context compaction with a verified handoff and one-time continuation.",
   "type": "module",
   "exports": {".": "./bridge.mjs", "./handoff": "./handoff.mjs", "./ipc": "./ipc.mjs"},
-  "scripts": {"start": "node ./bridge.mjs mcp", "test": "node --test ./*.test.mjs", "prepack": "npm test"},
+  "scripts": {"start": "node ./bridge.mjs mcp", "test": "node --test", "prepack": "npm test"},
   "files": [".codex-plugin/", ".mcp.json", "skills/", "AGENTS.md", "README.md", "live-verification.json", "LICENSE", "bridge.mjs", "compatibility.mjs", "handoff.mjs", "ipc.mjs"],
   "engines": {"node": ">=20"},
   "repository": {"type": "git", "url": "git+https://github.com/DitriXNew/rekall.git"},

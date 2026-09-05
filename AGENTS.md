@@ -9,7 +9,7 @@ Read [README.md](README.md) before changing the project. Rekall is a local MCP s
 - `ipc.mjs`: Codex VS Code extension IPC client.
 - `handoff.mjs`: handoff validation and continuation boundary.
 - `bridge.test.mjs`: isolated protocol and subprocess tests.
-- Run `npm test` (or `node --test ./*.test.mjs`) from the repository root.
+- Run `npm test` (or `node --test`) from the repository root. Use Node's test discovery so the command also works on Windows with Node 20.
 - Tests must use their dedicated pipe and temporary job directories. Never aim tests at an active Codex thread.
 
 Node.js 20 or newer is required. Live internal IPC support is verified only on Windows with the extension version named in the README. Linux CI verifies the isolated implementation, not live extension compatibility.
