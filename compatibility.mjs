@@ -84,30 +84,49 @@ export function findCodexBinary(env = process.env) {
   return candidates[0];
 }
 
-export async function probeCompatibility(state) {
+export async function probeCompatibility(state, options = {}) {
+  const env = options.env ?? process.env;
+  const executeFile = options.execute ?? execute;
+  const readFile = options.readFileSync ?? fs.readFileSync;
+  const makeTemporaryDirectory = options.mkdtempSync ?? fs.mkdtempSync;
+  const removeDirectory = options.rmSync ?? fs.rmSync;
   const runtime = inspectRuntimeCompatibility(state);
-  if (process.env.REKALL_PIPE || process.env.CONTEXT_COMPACT_PIPE) {
+  if (env.REKALL_PIPE || env.CONTEXT_COMPACT_PIPE) {
     return { runtime, publicSchema: { status: 'not_checked', reason: 'custom_test_transport' } };
   }
-  const binary = findCodexBinary();
+  const binary = options.binary ?? findCodexBinary(env);
   const extensionRoot = path.resolve(path.dirname(binary), '..', '..');
-  const manifest = JSON.parse(fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8'));
-  if (manifest.publisher !== 'openai' || manifest.name !== 'chatgpt' || manifest.version !== verifiedExtensionVersion) {
-    throw new Error(`Unverified Codex extension version ${manifest.version ?? 'unknown'}; verified version is ${verifiedExtensionVersion}. Validate the internal IPC adapter before use`);
+  const manifest = JSON.parse(readFile(path.join(extensionRoot, 'package.json'), 'utf8'));
+  if (manifest.publisher !== 'openai' || manifest.name !== 'chatgpt') {
+    throw new Error(`Unexpected extension identity ${manifest.publisher ?? 'unknown'}.${manifest.name ?? 'unknown'}; expected openai.chatgpt`);
   }
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'rekall-schema-'));
+  const versionVerified = manifest.version === verifiedExtensionVersion;
+  const unverifiedVersionAllowed = !versionVerified && env.REKALL_ALLOW_UNVERIFIED === '1';
+  if (!versionVerified && !unverifiedVersionAllowed) {
+    throw new Error(`Unverified Codex extension version ${manifest.version ?? 'unknown'}; verified version is ${verifiedExtensionVersion}. To investigate, set REKALL_ALLOW_UNVERIFIED=1 and run probe_compaction; compatibility is not guaranteed`);
+  }
+  const warnings = unverifiedVersionAllowed ? [{
+    severity: 'warning',
+    code: 'UNVERIFIED_EXTENSION_VERSION_OVERRIDE',
+    message: `REKALL_ALLOW_UNVERIFIED=1 bypassed version verification for Codex extension ${manifest.version ?? 'unknown'}; internal IPC compatibility is not established`,
+    extensionVersion: manifest.version ?? 'unknown',
+    verifiedExtensionVersion,
+  }] : [];
+  const temporary = makeTemporaryDirectory(path.join(os.tmpdir(), 'rekall-schema-'));
   try {
     // This exports schemas and exits; it does not start another App Server.
-    await execute(binary, ['app-server', 'generate-json-schema', '--out', temporary], {
+    await executeFile(binary, ['app-server', 'generate-json-schema', '--out', temporary], {
       windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024,
     });
-    const read = file => JSON.parse(fs.readFileSync(path.join(temporary, file), 'utf8'));
-    return { extensionVersion: manifest.version, runtime,
+    const read = file => JSON.parse(readFile(path.join(temporary, file), 'utf8'));
+    return { extensionVersion: manifest.version,
+      versionVerification: { status: versionVerified ? 'verified' : 'unverified_override', verifiedExtensionVersion },
+      warnings, runtime,
       publicSchema: inspectPublicSchema(read('ClientRequest.json'), read('ServerNotification.json')) };
   } finally {
     // Delete only the exact private temporary directory created above.
     if (path.dirname(temporary) === path.resolve(os.tmpdir()) && path.basename(temporary).startsWith('rekall-schema-')) {
-      fs.rmSync(temporary, { recursive: true, force: true });
+      removeDirectory(temporary, { recursive: true, force: true });
     }
   }
 }

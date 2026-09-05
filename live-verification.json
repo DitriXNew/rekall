@@ -2,7 +2,7 @@
   "package": "@ditrixnew/rekall",
   "version": "0.3.0",
   "verifiedOn": "2026-09-05",
-  "scope": "Local release verification; no remote CI or registry publication is implied.",
+  "scope": "Historical live and local package measurements for the initial 0.3.0 implementation. Current CI results are available from the repository's CI workflow; no registry publication is implied.",
   "privacy": "Thread, job, compaction and turn identifiers, paths, fingerprints and handoff contents are intentionally omitted. The original local journal was inspected by the resumed agent; this record is a summary, not independently verifiable raw evidence.",
   "live": {
     "platform": "win32-x64",
@@ -27,7 +27,32 @@
     "internalRuntimeStatus": "compatible",
     "internalCompletionFieldObserved": true
   },
-  "checks": {
+  "installedPackageLive": {
+    "platform": "win32-x64",
+    "extensionVersion": "26.901.22334",
+    "status": "resumed",
+    "jobNumber": 2,
+    "savedHandoffReadByResumedAgent": true,
+    "savedMarkerMatched": true,
+    "handoffSha256Matched": true,
+    "compactionIdPresent": true,
+    "compactionCompletedAtPresent": true,
+    "resumeTurnIdPresent": true,
+    "contextTokensBefore": 55856,
+    "contextTokensAfter": 12128,
+    "modelContextWindowAfter": 760000,
+    "tokensReclaimed": 43728,
+    "reclaimedFraction": 0.7828702377542252,
+    "compactionDurationMs": 88454,
+    "resumeDelayMs": 1065
+  },
+  "earlierUserReportedRun": {
+    "contextTokensBefore": 91384,
+    "contextTokensAfter": 10798,
+    "approximateCompactionSeconds": 120,
+    "approximateResumeDelaySeconds": 0.9
+  },
+  "checksAtInitialVerification": {
     "windowsTests": [
       {"nodeVersion": "20.20.2", "passed": 32, "failed": 0},
       {"nodeVersion": "24.6.0", "passed": 32, "failed": 0}
@@ -39,9 +64,9 @@
     "gitDiffCheck": "passed"
   },
   "limits": [
-    "This release has one observed live compaction/resume sample; it does not establish a latency distribution or a worst-case duration.",
+    "Two observed live compaction/resume samples and one earlier user-reported sample do not establish a latency distribution or a worst-case duration.",
     "The 15-minute worker deadline includes idle waiting and has not been validated across representative large threads.",
-    "The current revision was not tested locally on Linux because WSL could not start; Windows/Linux Node 20/22 CI is configured but has not yet run.",
+    "Linux CI covers isolated protocol and subprocess tests, not live Linux extension IPC.",
     "Internal extension IPC is verified only for the recorded Windows extension version."
   ]
 }

@@ -1,0 +1,57 @@
+name: New extension version
+description: Report a Codex VS Code extension update that Rekall has not verified.
+title: "[Compatibility] Codex extension "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Run `probe_compaction` in the affected VS Code extension chat, or `node ./bridge.mjs probe` with that chat's exact `CODEX_THREAD_ID`.
+        Paste the error if the probe fails. You do not need to run compaction or enable the override to report an update.
+        Redact thread/owner/job/turn IDs, local paths, and any private text. Do not attach raw journals or handoffs.
+        Report security defects privately through the repository's Security tab.
+  - type: input
+    id: extension_version
+    attributes:
+      label: Codex VS Code extension version
+      description: Copy the installed openai.chatgpt version from VS Code Extensions.
+      placeholder: "26.901.22334"
+    validations:
+      required: true
+  - type: input
+    id: rekall_version
+    attributes:
+      label: Rekall version or commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Node.js version
+      placeholder: "Windows 11, Node.js 22.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: override
+    attributes:
+      label: Was REKALL_ALLOW_UNVERIFIED set to exactly 1 for the probe process?
+      options:
+        - "No"
+        - "Yes"
+        - "Unsure"
+    validations:
+      required: true
+  - type: textarea
+    id: probe
+    attributes:
+      label: Redacted probe output or error
+      description: Include compatibility warnings and schema/runtime results when available.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: Describe what changed after the update. Include whether a compaction was already attempted and its redacted terminal status; do not retry an unknown result automatically.
+    validations:
+      required: true

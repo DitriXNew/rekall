@@ -24,6 +24,7 @@ Node.js 20 or newer is required. Live internal IPC support is verified only on W
 - Never retry automatically after failure, timeout, or an unknown outcome.
 - Never override the thread's permissions or global Codex configuration.
 - Treat extension IPC as internal and re-check compatibility after updates.
+- `REKALL_ALLOW_UNVERIFIED=1` overrides only the extension version gate. Keep its probe warning and all identity, schema, runtime, and IPC checks. Never enable it automatically after a failed probe.
 - Keep `REKALL_CODEX_BINARY` absolute when explicitly configured. A test-only
   `REKALL_PIPE` transport skips the public-schema subprocess by design.
 
