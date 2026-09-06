@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml?query=branch%3Amaster)
 [![HOL Plugin Scanner](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml/badge.svg?branch=master)](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml?query=branch%3Amaster)
+[![Cisco Skill Scan](https://img.shields.io/github/actions/workflow/status/DitriXNew/rekall/hol-plugin-scanner.yml?branch=master&event=push&label=Cisco%20Skill%20Scan)](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml?query=branch%3Amaster)
 
 Long Codex tasks accumulate logs, research, and intermediate decisions. Rekall lets the agent clear that accumulated context at a useful checkpoint while keeping a written handoff of the task, constraints, and next step.
 
@@ -175,7 +176,7 @@ npm pack --dry-run
 
 The npm package uses an explicit file allowlist. Inspect `npm pack --dry-run` before publishing. Plugin and marketplace manifests live in `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`; the MCP declaration is `.mcp.json`. The marketplace points to the plugin at the repository root.
 
-The HOL scanner workflow uses a SHA-pinned action with reviewed scanner version `3.0.103`, requires a score of at least 80 and no critical/high findings, and uploads SARIF to GitHub code scanning. It installs Cisco's skill analyzer and requires that analysis to complete. Network analyzers and automatic catalog submissions are disabled. For the same local gate in an isolated scanner installation, run:
+The HOL scanner workflow uses a SHA-pinned action with reviewed scanner version `3.0.103`, requires a score of at least 80 and no critical/high findings, and uploads SARIF to GitHub code scanning. It installs Cisco's skill analyzer and requires that analysis to complete. The Cisco Skill Scan badge reflects this combined workflow, including its mandatory Cisco analysis; it is not a separate workflow. Network analyzers and automatic catalog submissions are disabled. For the same local gate in an isolated scanner installation, run:
 
 ```text
 pipx install "plugin-scanner[cisco]==3.0.103"
