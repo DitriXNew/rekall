@@ -185,7 +185,7 @@ plugin-scanner scan . --format text --cisco-skill-scan on --min-score 80 --fail-
 
 Scanner findings and optional analyzer availability are separate signals; a passing score does not establish runtime safety. Dependency updates are tracked by Dependabot, and `.codexignore` excludes local runtime and build artifacts without excluding source code from review.
 
-Each successful scanner run publishes a JSON report and skill evidence artifact bound to its Git commit and the SHA-256 of `skills/rekall/SKILL.md`. Skill tags and language use Codex's supported `metadata` field. Rekall does not add unsupported top-level fields or a self-declared `verified` flag to increase its separate Skill Trust score. Read the report's analyzer status and findings alongside any numeric rating.
+Each successful scanner run publishes a JSON report and skill evidence artifact bound to its Git commit and the SHA-256 of `skills/rekall/SKILL.md`. The skill's `metadata.commit` identifies an immutable revision containing the same instruction body; metadata-only changes may differ. CI compares that body before recording a match. Skill tags and language use Codex's supported `metadata` field. Rekall does not add unsupported top-level fields or a self-declared `verified` flag to increase its separate Skill Trust score. Read the report's analyzer status and findings alongside any numeric rating.
 
 This project is licensed under the [MIT License](LICENSE).
 

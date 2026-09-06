@@ -45,3 +45,5 @@ After `schedule_compaction`, report the queued status and end the response. The 
 ## Repository hygiene
 
 Never commit or publish handoffs, journals, lock files, configuration backups, environment files, or real thread identifiers. Use synthetic fixtures. Preserve the package `files` allowlist and check `npm pack --dry-run` when package contents change.
+
+When changing the skill's instruction body, commit and review that body before updating `metadata.commit` to its immutable source revision. The scanner CI compares the instruction body with that revision and records the current file hash separately; frontmatter metadata may differ. Do not add a self-declared `verified` manifest flag.

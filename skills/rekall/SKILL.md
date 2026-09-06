@@ -6,6 +6,8 @@ metadata:
   author: DitriXNew
   version: "0.3.0"
   repository: https://github.com/DitriXNew/rekall
+  commit: 888f403f9dbaf7d17e51ca136bb6c05aa9915dd6
+  provenance: "This commit contains the same instruction body; frontmatter metadata may differ. Scanner CI verifies the body match."
   homepage: https://github.com/DitriXNew/rekall#readme
   tags: "codex, context-compaction, handoff"
   languages: "en"

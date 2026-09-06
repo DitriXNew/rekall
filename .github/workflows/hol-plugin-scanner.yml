@@ -19,6 +19,8 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # Verify the skill's immutable instruction-source commit.
       - name: HOL Plugin Scanner
         uses: hashgraph-online/ai-plugin-scanner-action@8f857cca6964f5e8c59f1f099b204727b7fb0632 # v1.2.619; scanner 3.0.103
         with:
@@ -39,8 +41,20 @@ jobs:
             --format json --output "$RUNNER_TEMP/rekall-scan.json" \
             --cisco-skill-scan on --min-score 80 --fail-on-severity high
           python - <<'PY'
-          import hashlib, json, os
+          import hashlib, json, os, re, subprocess
           from pathlib import Path
+          import yaml
+          skill_path = Path("skills/rekall/SKILL.md")
+          skill_text = skill_path.read_text()
+          frontmatter, body = skill_text.split("---", 2)[1:]
+          metadata = yaml.safe_load(frontmatter)["metadata"]
+          instruction_commit = metadata["commit"]
+          if not re.fullmatch(r"[0-9a-f]{40}", instruction_commit):
+              raise SystemExit("Skill instruction source must be a full commit SHA")
+          source_text = subprocess.check_output(["git", "show", instruction_commit + ":skills/rekall/SKILL.md"], text=True)
+          source_body = source_text.split("---", 2)[2]
+          if body.strip() != source_body.strip():
+              raise SystemExit("Skill instructions differ from their recorded source commit; update provenance after review")
           report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "rekall-scan.json").read_text())
           matches = [item for item in report["summary"]["integrations"] if item["name"].split(" / ")[-1] == "cisco-skill-scanner"]
           if len(matches) != 1:
@@ -51,6 +65,8 @@ jobs:
           evidence = {
               "sourceCommit": os.environ["GITHUB_SHA"],
               "skillSha256": hashlib.sha256(Path("skills/rekall/SKILL.md").read_bytes()).hexdigest(),
+              "instructionSourceCommit": instruction_commit,
+              "instructionBodyMatchesSource": True,
               "scannerVersion": report["tool_version"],
               "score": report["score"],
               "trust": report["trust"],
