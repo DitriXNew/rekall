@@ -8,6 +8,8 @@ Long Codex tasks accumulate logs, research, and intermediate decisions. Rekall l
 
 The agent saves the handoff, finishes its turn, and asks the Codex VS Code extension to compact the conversation. Rekall can then resume the authorized work once, carrying the verified handoff into the next turn.
 
+**Works with the Codex extension in VS Code on Windows, macOS, and Linux. Standalone Codex CLI sessions are not supported:** Rekall depends on the extension's IPC owner and conversation lifecycle, which its current adapter cannot access for a standalone CLI session.
+
 ## Install
 
 Requires Windows, macOS, or Linux, Node.js 20 or newer on PATH, the Codex VS Code extension, and a Codex CLI with the `plugin` commands. The plugin installation commands below work in PowerShell, zsh, and bash.
@@ -54,13 +56,13 @@ If migrating an existing manual installation to the plugin, remove the old manua
 | macOS ARM verification | 80,137 → 9,216 | 88.5% | 98.4 s | 0.812 s |
 | Earlier user-reported run | 91,384 → 10,798 | 88.2% | ~2 min | ~0.9 s |
 
-The resumed agent read the saved handoff in all three verification runs. The macOS run also verified its SHA-256 and exact thread/job binding. See the [sanitized verification record](live-verification.json) for the two earlier verification runs. Measurement limits and compatibility details are below.
+The resumed agent read the saved handoff in all three measured verification runs. The macOS run also verified its SHA-256 and exact thread/job binding. Linux operation was additionally reported as tested by the maintainer; no Linux token or timing measurements were supplied. See the [sanitized verification record](live-verification.json). Measurement limits and compatibility details are below.
 
 ## Scope
 
 Rekall operates on chats owned by the **Codex VS Code extension on Windows, macOS, or Linux**. Standalone Codex CLI sessions, the Codex desktop app, and Claude Code are not supported. The CLI commands below are another way to address an extension-owned chat; they do not add support for standalone CLI conversations. Node.js is required; there is no standalone executable.
 
-Windows uses the extension's named pipe. macOS and Linux use `$CODEX_HOME/ipc/ipc.sock`, defaulting to `~/.codex/ipc/ipc.sock`. Before connecting, Rekall requires the IPC directory and socket to belong to the current user and have no group/other permissions; symlinks at those two paths are rejected. Rekall does not create or change the socket or its permissions, and does not fall back to a shared temporary socket. Linux support is enabled, but a live Linux compaction/continuation cycle has not yet been verified.
+Windows uses the extension's named pipe. macOS and Linux use `$CODEX_HOME/ipc/ipc.sock`, defaulting to `~/.codex/ipc/ipc.sock`. Before connecting, Rekall requires the IPC directory and socket to belong to the current user and have no group/other permissions; symlinks at those two paths are rejected. Rekall does not create or change the socket or its permissions, and does not fall back to a shared temporary socket.
 
 ## MCP tools
 
@@ -118,7 +120,7 @@ Before dispatch, Rekall requires stable idle state, no pending permission reques
 
 ## Compatibility and extension updates
 
-The full live compaction/continuation cycle has been verified with `openai.chatgpt-26.901.22334-win32-x64` and, on macOS 26.6.2 with Node.js 26.5.0, `openai.chatgpt-26.901.22334-darwin-arm64`. The macOS run passed IPC, exact-thread ownership, runtime layout, and public-schema checks without an override, observed completed compaction, and resumed with a verified saved handoff. Intel Mac and Linux runtimes have not yet been verified; their platform paths are covered by isolated tests. Rekall uses an internal extension IPC protocol, which is not a stable public API. Run `probe_compaction` after extension updates.
+The full live compaction/continuation cycle has been verified with `openai.chatgpt-26.901.22334-win32-x64` and, on macOS 26.6.2 with Node.js 26.5.0, `openai.chatgpt-26.901.22334-darwin-arm64`. The macOS run passed IPC, exact-thread ownership, runtime layout, and public-schema checks without an override, observed completed compaction, and resumed with a verified saved handoff. The maintainer also reports successful Linux testing; its distribution, architecture, extension version, and measurements have not been recorded here. Intel Mac live verification is still outstanding. Platform paths are covered by isolated tests. Rekall uses an internal extension IPC protocol, which is not a stable public API. Run `probe_compaction` after extension updates.
 
 By default, Rekall rejects an unverified extension version. For deliberate compatibility investigation, set **`REKALL_ALLOW_UNVERIFIED=1`** in the Rekall process's environment. For a CLI probe in PowerShell:
 
@@ -174,14 +176,16 @@ npm pack --dry-run
 
 The npm package uses an explicit file allowlist. Inspect `npm pack --dry-run` before publishing. Plugin and marketplace manifests live in `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`; the MCP declaration is `.mcp.json`. The marketplace points to the plugin at the repository root.
 
-The HOL scanner workflow uses a SHA-pinned action with reviewed scanner version `3.0.103`, requires a score of at least 80 and no critical/high findings, and uploads SARIF to GitHub code scanning. Network analyzers and automatic catalog submissions are disabled. For the same local gate in an isolated scanner installation, run:
+The HOL scanner workflow uses a SHA-pinned action with reviewed scanner version `3.0.103`, requires a score of at least 80 and no critical/high findings, and uploads SARIF to GitHub code scanning. It installs Cisco's skill analyzer and requires that analysis to complete. Network analyzers and automatic catalog submissions are disabled. For the same local gate in an isolated scanner installation, run:
 
 ```text
-pipx install "plugin-scanner==3.0.103"
-plugin-scanner scan . --format text --min-score 80 --fail-on-severity high
+pipx install "plugin-scanner[cisco]==3.0.103"
+plugin-scanner scan . --format text --cisco-skill-scan on --min-score 80 --fail-on-severity high
 ```
 
 Scanner findings and optional analyzer availability are separate signals; a passing score does not establish runtime safety. Dependency updates are tracked by Dependabot, and `.codexignore` excludes local runtime and build artifacts without excluding source code from review.
+
+Each successful scanner run publishes a JSON report and skill evidence artifact bound to its Git commit and the SHA-256 of `skills/rekall/SKILL.md`. Skill tags and language use Codex's supported `metadata` field. Rekall does not add unsupported top-level fields or a self-declared `verified` flag to increase its separate Skill Trust score. Read the report's analyzer status and findings alongside any numeric rating.
 
 This project is licensed under the [MIT License](LICENSE).
 

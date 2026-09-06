@@ -4,6 +4,8 @@
 
 Rekall is intended for a single-user workstation running the Codex VS Code extension on Windows, macOS, or Linux. The extension version and platform verification limits are listed in [README.md](README.md#compatibility-and-extension-updates). Shared machines and multi-tenant hosts are outside the supported deployment model. Security fixes target the latest version on `master`; older versions do not have a separate maintenance branch.
 
+Standalone Codex CLI sessions and the Codex desktop app are unsupported. Rekall's adapter requires the VS Code extension's IPC owner and conversation events; the presence of a thread ID or a successful MCP installation is insufficient to control a session owned by another host.
+
 ## Trust boundary
 
 Rekall connects to the extension's existing local named pipe on Windows or Unix socket on macOS and Linux. It does not create or administer that endpoint, configure its access control, or add a separate authentication layer. On macOS and Linux it checks the current UID, rejects symlinks at the IPC directory and socket paths, and requires both to have no group/other permissions. It uses only `$CODEX_HOME/ipc/ipc.sock` (default `~/.codex/ipc/ipc.sock`), with no legacy shared-socket fallback. These filesystem checks do not authenticate another process running under the same account. Any local process that can connect to the endpoint can participate in the extension's IPC protocol, subject to the extension's own checks. Thread IDs and owner IDs are routing and consistency checks, not credentials. Do not expose or forward this endpoint over a network.
