@@ -46,11 +46,13 @@ test('binary discovery refuses a guessed CLI or relative override', () => {
   assert.throws(() => findCodexBinary({ REKALL_CODEX_BINARY: 'codex.exe' }), /absolute path/);
 });
 
-test('binary discovery selects extension executables on Windows and both Mac architectures', () => {
+test('binary discovery selects extension executables on Windows, macOS, and Linux', () => {
   for (const [platform, directory, binary] of [
     ['win32', 'C:\\extensions\\openai.chatgpt-26.901.22334-win32-x64\\bin\\windows-x86_64', 'codex.exe'],
     ['darwin', '/extensions/openai.chatgpt-26.901.22334-darwin-arm64/bin/macos-aarch64', 'codex'],
     ['darwin', '/extensions/openai.chatgpt-26.901.22334-darwin-x64/bin/macos-x86_64', 'codex'],
+    ['linux', '/extensions/openai.chatgpt-26.901.22334-linux-x64/bin/linux-x86_64', 'codex'],
+    ['linux', '/extensions/openai.chatgpt-26.901.22334-linux-arm64/bin/linux-aarch64', 'codex'],
   ]) {
     const paths = platform === 'win32' ? path.win32 : path.posix;
     const expected = paths.join(directory, binary);

@@ -10,7 +10,7 @@ The agent saves the handoff, finishes its turn, and asks the Codex VS Code exten
 
 ## Install
 
-Requires Windows or macOS, Node.js 20 or newer on PATH, the Codex VS Code extension, and a Codex CLI with the `plugin` commands. The plugin installation commands below work in PowerShell and macOS shells.
+Requires Windows, macOS, or Linux, Node.js 20 or newer on PATH, the Codex VS Code extension, and a Codex CLI with the `plugin` commands. The plugin installation commands below work in PowerShell, zsh, and bash.
 
 ```powershell
 codex plugin marketplace add DitriXNew/rekall
@@ -37,7 +37,7 @@ codex mcp add rekall -- node "$PWD/bridge.mjs" mcp
 
 Manual MCP registration installs only the server. Copy `skills/rekall` into `$CODEX_HOME/skills/rekall` (default: `~/.codex/skills/rekall`) to install the skill, then start a new extension chat.
 
-On macOS, use `cd rekall` instead of `Set-Location rekall`; the other manual installation commands work in zsh or bash.
+On macOS or Linux, use `cd rekall` instead of `Set-Location rekall`; the other manual installation commands work in zsh or bash.
 
 If migrating an existing manual installation to the plugin, remove the old manual MCP registration and the manually copied skill to avoid duplicate tool/skill discovery. The retired server name was `context-compact`; current manual installations use `rekall`. Keep the job directory so existing jobs and locks remain available.
 
@@ -58,9 +58,9 @@ The resumed agent read the saved handoff in all three verification runs. The mac
 
 ## Scope
 
-Rekall operates on chats owned by the **Codex VS Code extension on Windows or macOS**. Standalone Codex CLI sessions, the Codex desktop app, and Claude Code are not supported. The CLI commands below are another way to address an extension-owned chat; they do not add support for standalone CLI conversations. Node.js is required; there is no standalone executable.
+Rekall operates on chats owned by the **Codex VS Code extension on Windows, macOS, or Linux**. Standalone Codex CLI sessions, the Codex desktop app, and Claude Code are not supported. The CLI commands below are another way to address an extension-owned chat; they do not add support for standalone CLI conversations. Node.js is required; there is no standalone executable.
 
-Windows uses the extension's named pipe. macOS uses `$CODEX_HOME/ipc/ipc.sock`, defaulting to `~/.codex/ipc/ipc.sock`. Before connecting, Rekall requires the IPC directory and socket to belong to the current user and have no group/other permissions; symlinks at those two paths are rejected. Rekall does not create or change the socket or its permissions, and does not fall back to a shared temporary socket. Live Linux IPC remains unsupported.
+Windows uses the extension's named pipe. macOS and Linux use `$CODEX_HOME/ipc/ipc.sock`, defaulting to `~/.codex/ipc/ipc.sock`. Before connecting, Rekall requires the IPC directory and socket to belong to the current user and have no group/other permissions; symlinks at those two paths are rejected. Rekall does not create or change the socket or its permissions, and does not fall back to a shared temporary socket. Linux support is enabled, but a live Linux compaction/continuation cycle has not yet been verified.
 
 ## MCP tools
 
@@ -118,7 +118,7 @@ Before dispatch, Rekall requires stable idle state, no pending permission reques
 
 ## Compatibility and extension updates
 
-The full live compaction/continuation cycle has been verified with `openai.chatgpt-26.901.22334-win32-x64` and, on macOS 26.6.2 with Node.js 26.5.0, `openai.chatgpt-26.901.22334-darwin-arm64`. The macOS run passed IPC, exact-thread ownership, runtime layout, and public-schema checks without an override, observed completed compaction, and resumed with a verified saved handoff. Intel Mac runtime has not yet been verified; its platform paths are covered by isolated tests. Rekall uses an internal extension IPC protocol, which is not a stable public API. Run `probe_compaction` after extension updates.
+The full live compaction/continuation cycle has been verified with `openai.chatgpt-26.901.22334-win32-x64` and, on macOS 26.6.2 with Node.js 26.5.0, `openai.chatgpt-26.901.22334-darwin-arm64`. The macOS run passed IPC, exact-thread ownership, runtime layout, and public-schema checks without an override, observed completed compaction, and resumed with a verified saved handoff. Intel Mac and Linux runtimes have not yet been verified; their platform paths are covered by isolated tests. Rekall uses an internal extension IPC protocol, which is not a stable public API. Run `probe_compaction` after extension updates.
 
 By default, Rekall rejects an unverified extension version. For deliberate compatibility investigation, set **`REKALL_ALLOW_UNVERIFIED=1`** in the Rekall process's environment. For a CLI probe in PowerShell:
 
@@ -128,7 +128,7 @@ node ./bridge.mjs probe
 Remove-Item Env:REKALL_ALLOW_UNVERIFIED
 ```
 
-For a deliberate macOS investigation, scope the override to one command:
+For a deliberate macOS or Linux investigation, scope the override to one command:
 
 ```sh
 REKALL_ALLOW_UNVERIFIED=1 node ./bridge.mjs probe
@@ -140,13 +140,13 @@ For MCP, set the variable in the server's launch environment and restart the MCP
 
 Report new versions through the [compatibility issue template](https://github.com/DitriXNew/rekall/issues/new?template=new-extension-version.yml), including the extension version and **redacted** probe output or error. You can report a blocked probe without enabling the override or attempting compaction.
 
-Compatibility checks compare the public App Server schema with the internal completion signal Rekall observes. Before a thread exposes a compaction item, the probe reports `layout_compatible`: the public lifecycle and state layout are compatible, while the private completion field has not yet been observed. Rekall locates a unique extension-bundled executable from the extension's PATH entries: `codex.exe` on Windows or `codex` on macOS. When that is not possible, set `REKALL_CODEX_BINARY` to its absolute path. Schema generation exports files and exits; it does not start another App Server. Test transports using `REKALL_PIPE` deliberately skip the schema subprocess and production endpoint discovery/validation; do not use this test override for a live socket.
+Compatibility checks compare the public App Server schema with the internal completion signal Rekall observes. Before a thread exposes a compaction item, the probe reports `layout_compatible`: the public lifecycle and state layout are compatible, while the private completion field has not yet been observed. Rekall locates a unique extension-bundled executable from the extension's PATH entries: `codex.exe` on Windows or `codex` on macOS or Linux. When that is not possible, set `REKALL_CODEX_BINARY` to its absolute path. Schema generation exports files and exits; it does not start another App Server. Test transports using `REKALL_PIPE` deliberately skip the schema subprocess and production endpoint discovery/validation; do not use this test override for a live socket.
 
 ## Security
 
 Rekall is designed for a **single-user workstation**. Any local process able to connect to the extension's pipe or socket can interact with its IPC protocol, subject to the extension's own checks. Rekall does not add a separate authentication boundary. Owner/thread checks prevent accidental misrouting; they do not protect against an untrusted process with access to the same account and IPC endpoint.
 
-A future Linux port must isolate the socket by UID or an equivalent private per-user runtime directory and validate ownership, permissions, and peer identity. See the historical [upstream socket-isolation report #8965](https://github.com/openai/codex/issues/8965). Current Linux CI uses isolated test sockets and does not establish live Linux support.
+Linux uses the same private per-user socket location and ownership/permission checks as macOS. Rekall does not authenticate the peer process separately. Globally shared temporary sockets are not supported. See the historical [upstream socket-isolation report #8965](https://github.com/openai/codex/issues/8965). Linux CI uses isolated test sockets and does not establish live extension compatibility.
 
 Read [SECURITY.md](SECURITY.md) for the trust model, handoff-integrity limits, and private vulnerability reporting.
 

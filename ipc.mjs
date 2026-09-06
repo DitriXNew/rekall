@@ -10,13 +10,15 @@ import { EventEmitter } from 'node:events';
 export function resolveIpcEndpoint({ platform = process.platform, env = process.env,
   homedir = os.homedir, getuid = process.getuid, lstatSync = fs.lstatSync } = {}) {
   if (platform === 'win32') return '\\\\.\\pipe\\codex-ipc';
-  if (platform !== 'darwin') throw new Error(`Live Codex IPC is unsupported on ${platform}; use Windows or macOS`);
+  if (platform !== 'darwin' && platform !== 'linux') {
+    throw new Error(`Live Codex IPC is unsupported on ${platform}; use Windows, macOS, or Linux`);
+  }
   const home = env.CODEX_HOME ?? path.posix.join(homedir(), '.codex');
-  if (!path.posix.isAbsolute(home)) throw new Error('CODEX_HOME must be absolute for macOS IPC');
+  if (!path.posix.isAbsolute(home)) throw new Error('CODEX_HOME must be absolute for Unix IPC');
   const directory = path.posix.join(home, 'ipc');
   const endpoint = path.posix.join(directory, 'ipc.sock');
   const uid = getuid?.();
-  if (!Number.isInteger(uid) || uid < 0) throw new Error('Cannot verify the current macOS user for IPC');
+  if (!Number.isInteger(uid) || uid < 0) throw new Error('Cannot verify the current Unix user for IPC');
   // Match the extension's private directory (0700) and socket (0600).
   // lstat rejects symlinks; never create, chmod, or fall back to a shared socket.
   const parent = lstatSync(directory);

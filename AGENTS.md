@@ -12,7 +12,7 @@ Read [README.md](README.md) before changing the project. Rekall is a local MCP s
 - Run `npm test` (or `node --test`) from the repository root. Use Node's test discovery so the command also works on Windows with Node 20.
 - Tests must use their dedicated pipe and temporary job directories. Never aim tests at an active Codex thread.
 
-Node.js 20 or newer is required. Windows and macOS ARM have full live compaction/continuation verification with the extension versions named in the README. Intel Mac runtime remains unverified. CI on Windows, macOS, and Linux verifies the isolated implementation, not live extension compatibility. Live Linux IPC is unsupported.
+Node.js 20 or newer is required. Windows and macOS ARM have full live compaction/continuation verification with the extension versions named in the README. Intel Mac and Linux runtimes remain unverified. CI on Windows, macOS, and Linux verifies the isolated implementation, not live extension compatibility. Linux IPC is enabled using the same private per-user socket checks as macOS; preserve the distinction between implementation support and live verification.
 
 ## Invariants
 
