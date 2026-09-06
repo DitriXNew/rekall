@@ -2,6 +2,8 @@
 
 [CI: Windows + Linux, Node.js 20 + 22](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml?query=branch%3Amaster)
 
+[HOL Plugin Scanner](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml?query=branch%3Amaster)
+
 Long Codex tasks accumulate logs, research, and intermediate decisions. Rekall lets the agent clear that accumulated context at a useful checkpoint while keeping a written handoff of the task, constraints, and next step.
 
 The agent saves the handoff, finishes its turn, and asks the Codex VS Code extension to compact the conversation. Rekall can then resume the authorized work once, carrying the verified handoff into the next turn.
@@ -160,6 +162,15 @@ npm pack --dry-run
 [GitHub Actions](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml?query=branch%3Amaster) runs the suite on Windows and Linux with Node.js 20 and 22, plus package validation. Tests use dedicated pipes/sockets, temporary job directories, and child processes. They must never target a live conversation. Passing Linux tests does not establish live extension IPC support.
 
 The npm package uses an explicit file allowlist. Inspect `npm pack --dry-run` before publishing. Plugin and marketplace manifests live in `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json`; the MCP declaration is `.mcp.json`. The marketplace points to the plugin at the repository root.
+
+The HOL scanner workflow uses a SHA-pinned action with reviewed scanner version `3.0.103`, requires a score of at least 80 and no critical/high findings, and uploads SARIF to GitHub code scanning. Network analyzers and automatic catalog submissions are disabled. For the same local gate in an isolated scanner installation, run:
+
+```text
+pipx install "plugin-scanner==3.0.103"
+plugin-scanner scan . --format text --min-score 80 --fail-on-severity high
+```
+
+Scanner findings and optional analyzer availability are separate signals; a passing score does not establish runtime safety. Dependency updates are tracked by Dependabot, and `.codexignore` excludes local runtime and build artifacts without excluding source code from review.
 
 This project is licensed under the [MIT License](LICENSE).
 
