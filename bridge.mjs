@@ -399,7 +399,7 @@ async function serveMcp() {
         case 'initialize':
           if (typeof message.params?.protocolVersion !== 'string') throw new Error('protocolVersion is required');
           result = { protocolVersion: message.params.protocolVersion,
-          capabilities: { tools: {} }, serverInfo: { name: 'rekall', version: '0.3.0' } }; break;
+          capabilities: { tools: {} }, serverInfo: { name: 'rekall', version: '0.3.1' } }; break;
         case 'ping': result = {}; break;
         case 'tools/list': result = { tools: toolDefinitions }; break;
         case 'tools/call': {

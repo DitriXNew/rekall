@@ -1,6 +1,6 @@
 {
   "name": "@ditrixnew/rekall",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Deliberate Codex context compaction with a verified handoff and one-time continuation.",
   "type": "module",
   "exports": {".": "./bridge.mjs", "./handoff": "./handoff.mjs", "./ipc": "./ipc.mjs"},
