@@ -359,23 +359,24 @@ const schema = { type: 'object', properties: {
   threadId: { type: 'string', description: 'Current CODEX_THREAD_ID; obtain from the shell environment. Never guess or select a different thread.' },
 }, required: ['threadId'], additionalProperties: false };
 const handoffSchema = { type: 'object', additionalProperties: false,
+  description: 'Optional verified handoff saved for this job. It guides the resumed agent but does not alter the extension compaction prompt.',
   properties: {
     summary: { type: 'string', description: 'Current task, constraints, decisions, completed work, verification and outstanding work. Maximum handoff size: 32000 UTF-8 bytes.' },
     preserve: { type: 'array', items: { type: 'string' }, maxItems: 40, description: 'Facts and instructions to retain verbatim or in detail.' },
     discard: { type: 'array', items: { type: 'string' }, maxItems: 40, description: 'Redundant history to summarize. Does not authorize deleting files.' },
-    nextStep: { type: 'string', description: 'Exact authorized next action, including where to stop.' },
-    resume: { type: 'boolean', description: 'Explicit opt-in to ONE automatic next turn. Must be false if the user asked to stop.' },
+    nextStep: { type: 'string', description: 'Exact authorized next action, including where to stop. Required even when resume is false.' },
+    resume: { type: 'boolean', description: 'Explicit opt-in to ONE automatic next turn. Use false when work is complete, the user asked to stop, or the next step needs user input.' },
   }, required: ['summary', 'preserve', 'discard', 'nextStep', 'resume'] };
 const toolDefinitions = [
-  { name: 'probe_compaction', description: 'Read-only: verify access to the owner and runtime state of the specified current Codex VS Code chat.', inputSchema: schema,
+  { name: 'probe_compaction', description: 'Read-only preflight for an extension-owned Codex VS Code chat on Windows, macOS, or Linux. Run after compaction_status and before schedule_compaction to verify the exact owner/thread, extension version, runtime layout, public schema, and IPC access. It does not compact or prove live compaction compatibility; layout_compatible means only that the required layout was found. Standalone Codex CLI sessions are unsupported because they have no VS Code extension owner. Use compaction_status instead to inspect an existing job.', inputSchema: schema,
     annotations: { readOnlyHint: true, openWorldHint: false } },
   { name: 'schedule_compaction', description: 'Schedule ONE compaction after this answer. Only when the user authorizes compaction. Optional handoff describes what to keep/summarize and is saved exactly in a per-job file. resume:true explicitly requests ONE subsequent turn with that handoff and nextStep; use only for authorized continuation. Cancels on observed new user input or a stopped turn. Return the handoff in context before finishing. Compaction prompt itself is not overridden. Check status later; no automatic retries.',
     inputSchema: { ...schema, properties: { ...schema.properties, handoff: handoffSchema } },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false } },
-  { name: 'compaction_status', description: 'Read the local compaction job result. completed requires a new completed contextCompaction event, not just an accepted request.', inputSchema: schema,
+  { name: 'compaction_status', description: 'Read-only local job inspection. Run before probe_compaction or schedule_compaction to detect an unfinished job, and after scheduling or cancellation to inspect its exact outcome and metrics. It does not probe extension compatibility. scheduled, waiting_for_idle, requesting, and accepted are intermediate; completed requires a newly observed completed contextCompaction event. resumed identifies a returned continuation turn, not successful work. Missing or stale post-compaction telemetry can skip automatic continuation with insufficient_headroom.', inputSchema: schema,
     annotations: { readOnlyHint: true, openWorldHint: false } },
-  { name: 'cancel_compaction', description: 'Cancel pending compaction/continuation dispatches for an exact job ID. Already sent requests cannot be undone. Inspect status afterward.',
-    inputSchema: { ...schema, properties: { ...schema.properties, jobId: { type: 'string' } }, required: ['threadId', 'jobId'] },
+  { name: 'cancel_compaction', description: 'Cancel pending compaction or continuation dispatches only for the exact job returned by schedule_compaction or compaction_status. Already sent requests cannot be undone. Use compaction_status for observation and inspect it after cancellation.',
+    inputSchema: { ...schema, properties: { ...schema.properties, jobId: { type: 'string', description: 'Exact jobId returned by schedule_compaction or compaction_status for this thread. Never infer it.' } }, required: ['threadId', 'jobId'] },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false } },
 ];
 
@@ -398,7 +399,7 @@ async function serveMcp() {
         case 'initialize':
           if (typeof message.params?.protocolVersion !== 'string') throw new Error('protocolVersion is required');
           result = { protocolVersion: message.params.protocolVersion,
-          capabilities: { tools: {} }, serverInfo: { name: 'rekall', version: '0.3.0' } }; break;
+          capabilities: { tools: {} }, serverInfo: { name: 'rekall', version: '0.3.1' } }; break;
         case 'ping': result = {}; break;
         case 'tools/list': result = { tools: toolDefinitions }; break;
         case 'tools/call': {

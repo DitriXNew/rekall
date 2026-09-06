@@ -18,7 +18,9 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Verify the skill's immutable instruction-source commit.
       - name: HOL Plugin Scanner
         uses: hashgraph-online/ai-plugin-scanner-action@8f857cca6964f5e8c59f1f099b204727b7fb0632 # v1.2.619; scanner 3.0.103
         with:
@@ -29,5 +31,56 @@ jobs:
           format: sarif
           upload_sarif: true
           online: false
+          install_cisco: true
+          cisco_skill_scan: "on"
           submission_enabled: false
           pr_comment: "off"
+      - name: Record skill scan evidence
+        run: |
+          env -u MCP_SCANNER_API_KEY -u MCP_SCANNER_LLM_API_KEY plugin-scanner scan . \
+            --format json --output "$RUNNER_TEMP/rekall-scan.json" \
+            --cisco-skill-scan on --min-score 80 --fail-on-severity high
+          python - <<'PY'
+          import hashlib, json, os, re, subprocess
+          from pathlib import Path
+          import yaml
+          skill_path = Path("skills/rekall/SKILL.md")
+          skill_text = skill_path.read_text()
+          frontmatter, body = skill_text.split("---", 2)[1:]
+          metadata = yaml.safe_load(frontmatter)["metadata"]
+          instruction_commit = metadata["commit"]
+          if not re.fullmatch(r"[0-9a-f]{40}", instruction_commit):
+              raise SystemExit("Skill instruction source must be a full commit SHA")
+          source_text = subprocess.check_output(["git", "show", instruction_commit + ":skills/rekall/SKILL.md"], text=True)
+          source_body = source_text.split("---", 2)[2]
+          if body.strip() != source_body.strip():
+              raise SystemExit("Skill instructions differ from their recorded source commit; update provenance after review")
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "rekall-scan.json").read_text())
+          matches = [item for item in report["summary"]["integrations"] if item["name"].split(" / ")[-1] == "cisco-skill-scanner"]
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one Cisco skill analysis result")
+          cisco = matches[0]
+          if cisco["status"] != "enabled":
+              raise SystemExit("Cisco skill analysis did not complete: " + cisco["message"])
+          evidence = {
+              "sourceCommit": os.environ["GITHUB_SHA"],
+              "skillSha256": hashlib.sha256(Path("skills/rekall/SKILL.md").read_bytes()).hexdigest(),
+              "instructionSourceCommit": instruction_commit,
+              "instructionBodyMatchesSource": True,
+              "scannerVersion": report["tool_version"],
+              "score": report["score"],
+              "trust": report["trust"],
+              "findings": report["summary"]["findings"],
+              "ciscoSkill": cisco,
+          }
+          (Path(os.environ["RUNNER_TEMP"]) / "rekall-skill-evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
+          print(json.dumps({"score": report["score"], "trust": report["trust"]["total"], "ciscoSkillStatus": cisco["status"]}))
+          PY
+      - name: Save scanner report and skill evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rekall-skill-scan-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/rekall-scan.json
+            ${{ runner.temp }}/rekall-skill-evidence.json
+          if-no-files-found: error

@@ -1,9 +1,21 @@
 ---
 name: rekall
-description: Compact the current Codex thread through Rekall with a verified handoff and optional one-time continuation. Use when the user asks to compact context or after a substantial completed stage of an ongoing long task; do not use for routine turns.
+description: Compact the current Codex VS Code extension thread through Rekall with a verified handoff and optional one-time continuation. Use on an explicit compaction request or after a substantial completed stage; standalone Codex CLI sessions are unsupported.
+license: MIT
+metadata:
+  author: DitriXNew
+  version: "0.3.1"
+  repository: https://github.com/DitriXNew/rekall
+  commit: 888f403f9dbaf7d17e51ca136bb6c05aa9915dd6
+  provenance: "This commit contains the same instruction body; frontmatter metadata may differ. Scanner CI verifies the body match."
+  homepage: https://github.com/DitriXNew/rekall#readme
+  tags: "codex, context-compaction, handoff"
+  languages: "en"
 ---
 
 # Rekall
+
+Rekall requires a thread owned by the Codex extension in VS Code, on Windows, macOS, or Linux. It uses that extension's IPC owner and lifecycle events. Standalone Codex CLI sessions, the Codex desktop app, and Claude Code are unsupported. Installing the plugin with the Codex CLI does not change this host requirement. Do not start a separate App Server or resume another process to work around a missing extension owner.
 
 Use Rekall only for the current thread. Obtain `CODEX_THREAD_ID` from the environment; never guess an identifier or select a thread from history.
 

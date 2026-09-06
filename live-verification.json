@@ -52,6 +52,26 @@
     "approximateCompactionSeconds": 120,
     "approximateResumeDelaySeconds": 0.9
   },
+  "macosArmLive": {
+    "evidence": "Maintainer-recorded verification accompanying the macOS implementation",
+    "platform": "darwin-arm64",
+    "osVersion": "26.6.2",
+    "nodeVersion": "26.5.0",
+    "extensionVersion": "26.901.22334",
+    "status": "resumed",
+    "savedHandoffReadByResumedAgent": true,
+    "handoffSha256Matched": true,
+    "contextTokensBefore": 80137,
+    "contextTokensAfter": 9216,
+    "approximateCompactionSeconds": 98.4,
+    "approximateResumeDelaySeconds": 0.812
+  },
+  "linuxVerification": {
+    "evidence": "Maintainer reports successful Linux testing after implementing Linux support",
+    "status": "maintainer_reported_tested",
+    "platformDetailsRecorded": false,
+    "tokenAndTimingMeasurementsRecorded": false
+  },
   "checksAtInitialVerification": {
     "windowsTests": [
       {"nodeVersion": "20.20.2", "passed": 32, "failed": 0},
@@ -64,9 +84,10 @@
     "gitDiffCheck": "passed"
   },
   "limits": [
-    "Two observed live compaction/resume samples and one earlier user-reported sample do not establish a latency distribution or a worst-case duration.",
+    "Three measured live compaction/resume samples and one earlier user-reported sample do not establish a latency distribution or a worst-case duration. The Linux test report has no recorded measurements.",
     "The 15-minute worker deadline includes idle waiting and has not been validated across representative large threads.",
     "Linux CI covers isolated protocol and subprocess tests, not live Linux extension IPC.",
-    "Internal extension IPC is verified only for the recorded Windows extension version."
+    "Detailed extension-version evidence is recorded for Windows and macOS ARM. Linux testing is maintainer-reported without recorded platform/version details; Intel Mac live verification is outstanding.",
+    "Rekall requires a Codex VS Code extension-owned thread. Standalone Codex CLI sessions and the Codex desktop app are unsupported by this IPC adapter."
   ]
 }

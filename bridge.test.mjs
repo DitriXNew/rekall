@@ -256,7 +256,7 @@ async function exercise(t, scenario) {
   const tool = async (name, args = {}) => JSON.parse((await rpc('tools/call', { name, arguments: { threadId, ...args } })).content[0].text);
   const init = await rpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
   assert.equal(init.serverInfo.name, 'rekall');
-  assert.equal(init.serverInfo.version, '0.3.0');
+  assert.equal(init.serverInfo.version, '0.3.1');
   assert.equal((await rpc('tools/list')).tools.length, 4);
   const options = scenario === 'compact_only' ? {} : { handoff: { ...handoff, resume: scenario !== 'handoff_without_resume' } };
   const job = await tool('schedule_compaction', options); workerPid = job.pid;

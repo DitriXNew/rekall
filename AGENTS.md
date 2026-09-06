@@ -12,7 +12,9 @@ Read [README.md](README.md) before changing the project. Rekall is a local MCP s
 - Run `npm test` (or `node --test`) from the repository root. Use Node's test discovery so the command also works on Windows with Node 20.
 - Tests must use their dedicated pipe and temporary job directories. Never aim tests at an active Codex thread.
 
-Node.js 20 or newer is required. Live internal IPC support is verified only on Windows with the extension version named in the README. Linux CI verifies the isolated implementation, not live extension compatibility.
+Node.js 20 or newer is required. Windows and macOS ARM have full live compaction/continuation verification with the extension versions named in the README. The maintainer reports successful Linux testing without recorded platform details or measurements; Intel Mac live verification remains outstanding. CI on Windows, macOS, and Linux verifies the isolated implementation, not live extension compatibility. Linux IPC uses the same private per-user socket checks as macOS; preserve the distinction between measured verification and maintainer-reported testing.
+
+Rekall works only with chats owned by the Codex VS Code extension. Standalone Codex CLI sessions, the Codex desktop app, and Claude Code are unsupported because this adapter uses the extension's IPC owner and lifecycle events. CLI-based plugin installation does not establish support for CLI-owned sessions.
 
 ## Invariants
 
@@ -43,3 +45,5 @@ After `schedule_compaction`, report the queued status and end the response. The 
 ## Repository hygiene
 
 Never commit or publish handoffs, journals, lock files, configuration backups, environment files, or real thread identifiers. Use synthetic fixtures. Preserve the package `files` allowlist and check `npm pack --dry-run` when package contents change.
+
+When changing the skill's instruction body, commit and review that body before updating `metadata.commit` to its immutable source revision. The scanner CI compares the instruction body with that revision and records the current file hash separately; frontmatter metadata may differ. Do not add a self-declared `verified` manifest flag.
