@@ -2,11 +2,11 @@
 
 ## Supported environment
 
-Rekall is intended for a single-user workstation running the Codex VS Code extension on Windows. The verified extension version is listed in [README.md](README.md#compatibility-and-extension-updates). Shared machines, multi-tenant hosts, and live Linux IPC are outside the supported deployment model. Security fixes target the latest version on `master`; older versions do not have a separate maintenance branch.
+Rekall is intended for a single-user workstation running the Codex VS Code extension on Windows or macOS. The extension version and platform verification limits are listed in [README.md](README.md#compatibility-and-extension-updates). Shared machines, multi-tenant hosts, and live Linux IPC are outside the supported deployment model. Security fixes target the latest version on `master`; older versions do not have a separate maintenance branch.
 
 ## Trust boundary
 
-Rekall connects to the extension's existing local named pipe. It does not create or administer that pipe, configure its access control, or add a separate authentication layer. Any local process that can connect to the pipe can participate in the extension's IPC protocol, subject to the extension's own checks. Thread IDs and owner IDs are routing and consistency checks, not credentials. Do not expose or forward this pipe over a network.
+Rekall connects to the extension's existing local named pipe on Windows or Unix socket on macOS. It does not create or administer that endpoint, configure its access control, or add a separate authentication layer. On macOS it checks the current UID, rejects symlinks at the IPC directory and socket paths, and requires both to have no group/other permissions. It uses only `$CODEX_HOME/ipc/ipc.sock` (default `~/.codex/ipc/ipc.sock`), with no legacy shared-socket fallback. These filesystem checks do not authenticate another process running under the same account. Any local process that can connect to the endpoint can participate in the extension's IPC protocol, subject to the extension's own checks. Thread IDs and owner IDs are routing and consistency checks, not credentials. Do not expose or forward this endpoint over a network.
 
 The operating-system account, the Codex extension, the installed Rekall code, and processes with access to that account's files and IPC endpoint belong to the trusted computing base. Rekall's schema, owner, thread, user-input, and handoff checks reduce accidental misrouting and unintended continuation; they do not isolate mutually untrusted local processes.
 

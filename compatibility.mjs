@@ -67,9 +67,11 @@ export function inspectPublicSchema(requests, notifications) {
     internalCompletionFlagIsPublic: false };
 }
 
-export function findCodexBinary(env = process.env) {
+export function findCodexBinary(env = process.env, { platform = process.platform, existsSync = fs.existsSync } = {}) {
+  const paths = platform === 'win32' ? path.win32 : path.posix;
+  const executable = platform === 'win32' ? 'codex.exe' : 'codex';
   if (env.REKALL_CODEX_BINARY) {
-    if (!path.isAbsolute(env.REKALL_CODEX_BINARY) || !fs.existsSync(env.REKALL_CODEX_BINARY)) {
+    if (!paths.isAbsolute(env.REKALL_CODEX_BINARY) || !existsSync(env.REKALL_CODEX_BINARY)) {
       throw new Error('REKALL_CODEX_BINARY must be an absolute path to the extension-bundled Codex executable');
     }
     return env.REKALL_CODEX_BINARY;
@@ -77,9 +79,9 @@ export function findCodexBinary(env = process.env) {
   // Prefer the binary injected by the owning VS Code extension, never a
   // different npm CLI that happens to be first on PATH.
   const envPath = Object.entries(env).find(([key]) => key.toLowerCase() === 'path')?.[1] ?? '';
-  const candidates = [...new Set(envPath.split(path.delimiter).filter(entry =>
-    /openai\.chatgpt-[^/\\]+[/\\]bin[/\\]/i.test(entry)).map(entry => path.join(entry, 'codex.exe')))]
-    .filter(file => fs.existsSync(file));
+  const candidates = [...new Set(envPath.split(paths.delimiter).filter(entry =>
+    paths.isAbsolute(entry) && /[/\\]openai\.chatgpt-[^/\\]+[/\\]bin[/\\][^/\\]+[/\\]?$/i.test(entry))
+    .map(entry => paths.join(entry, executable)))].filter(file => existsSync(file));
   if (candidates.length !== 1) throw new Error('Cannot identify one extension-bundled Codex binary; set REKALL_CODEX_BINARY to its absolute path');
   return candidates[0];
 }

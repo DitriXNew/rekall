@@ -46,6 +46,32 @@ test('binary discovery refuses a guessed CLI or relative override', () => {
   assert.throws(() => findCodexBinary({ REKALL_CODEX_BINARY: 'codex.exe' }), /absolute path/);
 });
 
+test('binary discovery selects extension executables on Windows and both Mac architectures', () => {
+  for (const [platform, directory, binary] of [
+    ['win32', 'C:\\extensions\\openai.chatgpt-26.901.22334-win32-x64\\bin\\windows-x86_64', 'codex.exe'],
+    ['darwin', '/extensions/openai.chatgpt-26.901.22334-darwin-arm64/bin/macos-aarch64', 'codex'],
+    ['darwin', '/extensions/openai.chatgpt-26.901.22334-darwin-x64/bin/macos-x86_64', 'codex'],
+  ]) {
+    const paths = platform === 'win32' ? path.win32 : path.posix;
+    const expected = paths.join(directory, binary);
+    const env = { Path: [paths.parse(directory).root + 'unrelated', directory, directory + paths.sep].join(paths.delimiter) };
+    assert.equal(findCodexBinary(env, { platform, existsSync: file => file === expected }), expected);
+    assert.equal(findCodexBinary({ REKALL_CODEX_BINARY: expected }, { platform, existsSync: file => file === expected }), expected);
+    assert.throws(() => findCodexBinary({ REKALL_CODEX_BINARY: binary }, { platform, existsSync: () => true }), /absolute path/);
+    assert.throws(() => findCodexBinary(env, { platform, existsSync: () => false }), /Cannot identify/);
+    const second = directory.replace('26.901.22334', '99.0.0');
+    assert.throws(() => findCodexBinary({ PATH: [directory, second].join(paths.delimiter) },
+      { platform, existsSync: () => true }), /Cannot identify one/);
+  }
+});
+
+test('binary discovery ignores relative and nested lookalike extension paths', () => {
+  for (const directory of ['openai.chatgpt-test/bin/macos-aarch64',
+    '/extensions/openai.chatgpt-test/bin/macos-aarch64/unrelated', '/usr/local/bin']) {
+    assert.throws(() => findCodexBinary({ PATH: directory }, { platform: 'darwin', existsSync: () => true }), /Cannot identify/);
+  }
+});
+
 function probeFixture({ version = verifiedExtensionVersion, publisher = 'openai', name = 'chatgpt',
   env = {}, requests, notifications, state } = {}) {
   const schemas = fixtures();

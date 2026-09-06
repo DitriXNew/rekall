@@ -1,11 +1,37 @@
 import net from 'node:net';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 
 // Private VS Code Codex IPC, verified against openai.chatgpt 26.901.22334.
 // Discovery, read-only following, compaction, and explicit one-shot continuation.
+export function resolveIpcEndpoint({ platform = process.platform, env = process.env,
+  homedir = os.homedir, getuid = process.getuid, lstatSync = fs.lstatSync } = {}) {
+  if (platform === 'win32') return '\\\\.\\pipe\\codex-ipc';
+  if (platform !== 'darwin') throw new Error(`Live Codex IPC is unsupported on ${platform}; use Windows or macOS`);
+  const home = env.CODEX_HOME ?? path.posix.join(homedir(), '.codex');
+  if (!path.posix.isAbsolute(home)) throw new Error('CODEX_HOME must be absolute for macOS IPC');
+  const directory = path.posix.join(home, 'ipc');
+  const endpoint = path.posix.join(directory, 'ipc.sock');
+  const uid = getuid?.();
+  if (!Number.isInteger(uid) || uid < 0) throw new Error('Cannot verify the current macOS user for IPC');
+  // Match the extension's private directory (0700) and socket (0600).
+  // lstat rejects symlinks; never create, chmod, or fall back to a shared socket.
+  const parent = lstatSync(directory);
+  if (!parent.isDirectory() || parent.uid !== uid || (parent.mode & 0o077) !== 0) {
+    throw new Error('Codex IPC directory must be private and owned by the current user');
+  }
+  const socket = lstatSync(endpoint);
+  if (!socket.isSocket() || socket.uid !== uid || (socket.mode & 0o077) !== 0) {
+    throw new Error('Codex IPC socket must be private and owned by the current user');
+  }
+  return endpoint;
+}
+
 export class CodexIpc extends EventEmitter {
-  constructor(threadId, { endpoint = '\\\\.\\pipe\\codex-ipc' } = {}) {
+  constructor(threadId, { endpoint } = {}) {
     super();
     if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(threadId)) throw new Error('Invalid thread ID');
     this.threadId = threadId;
@@ -18,7 +44,8 @@ export class CodexIpc extends EventEmitter {
   }
 
   async connect() {
-    this.socket = net.connect(this.endpoint);
+    // Resolve on every connection so detached workers also validate the socket.
+    this.socket = net.connect(this.endpoint ?? resolveIpcEndpoint());
     this.socket.on('data', data => {
       try { this.receive(data); } catch (error) { this.fail(error); }
     });
