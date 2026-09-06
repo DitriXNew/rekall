@@ -4,7 +4,7 @@ description: Compact the current Codex VS Code extension thread through Rekall w
 license: MIT
 metadata:
   author: DitriXNew
-  version: "0.3.0"
+  version: "0.3.1"
   repository: https://github.com/DitriXNew/rekall
   commit: 888f403f9dbaf7d17e51ca136bb6c05aa9915dd6
   provenance: "This commit contains the same instruction body; frontmatter metadata may differ. Scanner CI verifies the body match."

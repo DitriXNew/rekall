@@ -1,6 +1,6 @@
 {
   "name": "rekall",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Deliberate Codex context compaction with a verified handoff and one-time continuation.",
   "author": {"name": "Dmytro Sherstobitov", "url": "https://github.com/DitriXNew"},
   "homepage": "https://github.com/DitriXNew/rekall#readme",
