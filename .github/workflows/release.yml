@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: # Build and verify only; never publish from a manual run.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+      - id: version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            npm run release:check -- "$GITHUB_REF_NAME"
+          else
+            npm run release:check
+          fi
+
+  tests:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  scanner:
+    needs: version
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/hol-plugin-scanner.yml
+
+  build:
+    name: Build and verify release archive
+    needs: [version, tests, scanner]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build archive and verify a fresh installation
+        env:
+          REKALL_RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: npm run release:build -- "$RUNNER_TEMP/rekall-release"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rekall-release-${{ needs.version.outputs.version }}
+          path: ${{ runner.temp }}/rekall-release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          package-manager-cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rekall-release-${{ needs.version.outputs.version }}
+          path: ${{ runner.temp }}/rekall-release/
+      - name: Publish verified assets without overwriting an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-release.mjs "$RUNNER_TEMP/rekall-release/release.json"

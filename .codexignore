@@ -11,5 +11,6 @@ config.before.toml
 node_modules/
 *.tgz
 coverage/
+dist/
 npm-debug.log*
 .DS_Store

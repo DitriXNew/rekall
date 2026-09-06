@@ -8,5 +8,6 @@ config.before.toml
 node_modules/
 *.tgz
 coverage/
+dist/
 .DS_Store
 npm-debug.log*

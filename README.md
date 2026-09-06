@@ -1,8 +1,7 @@
 # Rekall
 
-[CI: Windows + macOS + Linux, Node.js 20 + 22](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml?query=branch%3Amaster)
-
-[HOL Plugin Scanner](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml?query=branch%3Amaster)
+[![CI](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/DitriXNew/rekall/actions/workflows/ci.yml?query=branch%3Amaster)
+[![HOL Plugin Scanner](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml/badge.svg?branch=master)](https://github.com/DitriXNew/rekall/actions/workflows/hol-plugin-scanner.yml?query=branch%3Amaster)
 
 Long Codex tasks accumulate logs, research, and intermediate decisions. Rekall lets the agent clear that accumulated context at a useful checkpoint while keeping a written handoff of the task, constraints, and next step.
 
@@ -188,6 +187,26 @@ Scanner findings and optional analyzer availability are separate signals; a pass
 Each successful scanner run publishes a JSON report and skill evidence artifact bound to its Git commit and the SHA-256 of `skills/rekall/SKILL.md`. The skill's `metadata.commit` identifies an immutable revision containing the same instruction body; metadata-only changes may differ. CI compares that body before recording a match. Skill tags and language use Codex's supported `metadata` field. Rekall does not add unsupported top-level fields or a self-declared `verified` flag to increase its separate Skill Trust score. Read the report's analyzer status and findings alongside any numeric rating.
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Releases
+
+Pushing a new version tag such as `v0.3.2` triggers the [Release workflow](https://github.com/DitriXNew/rekall/actions/workflows/release.yml). The tag must match the versions in `package.json`, `package-lock.json`, the plugin manifest, and the skill metadata. The packaged MCP must report that same version.
+
+The workflow runs the shared Windows/macOS/Linux CI matrix and the HOL scanner, then builds the npm archive. It checks the package allowlist, verifies a fresh installation and MCP startup, and generates `SHA256SUMS.txt`. GitHub Release publication happens only after those checks pass. Prerelease versions produce prereleases. npm registry publication is separate and is not enabled by this workflow.
+
+After updating and committing all version fields, validate the intended tag and push it:
+
+```text
+npm run release:check -- v0.3.2
+git tag v0.3.2
+git push origin v0.3.2
+```
+
+Replace `v0.3.2` with the new package version. Never move a published tag. The workflow must exist in the tagged commit, so it does not retroactively build older tags such as `v0.3.1`.
+
+Use **Run workflow** on the Release workflow for a build-only check without creating a tag or publishing anything. Download its `rekall-release-<version>` artifact to inspect the archive, checksum, release notes, and source manifest. For a local build from a clean committed checkout, run `npm run release:build`; files are written to the ignored `dist/` directory.
+
+On a repeated tag run, matching published assets are left unchanged. Missing or mismatched published assets cause a failure instead of replacement. An interrupted draft can resume its missing uploads; the release becomes public only after both expected assets have been verified.
 
 ## Uninstall
 
