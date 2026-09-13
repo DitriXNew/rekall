@@ -122,25 +122,13 @@ Before dispatch, Rekall requires stable idle state, no pending permission reques
 
 The full live compaction/continuation cycle has been verified with `openai.chatgpt-26.901.22334-win32-x64` and, on macOS 26.6.2 with Node.js 26.5.0, `openai.chatgpt-26.901.22334-darwin-arm64`. The macOS run passed IPC, exact-thread ownership, runtime layout, and public-schema checks without an override, observed completed compaction, and resumed with a verified saved handoff. The maintainer also reports successful Linux testing; its distribution, architecture, extension version, and measurements have not been recorded here. Intel Mac live verification is still outstanding. Platform paths are covered by isolated tests. Rekall uses an internal extension IPC protocol, which is not a stable public API. Run `probe_compaction` after extension updates.
 
-By default, Rekall rejects an unverified extension version. For deliberate compatibility investigation, set **`REKALL_ALLOW_UNVERIFIED=1`** in the Rekall process's environment. For a CLI probe in PowerShell:
+Rekall accepts any extension version number and checks compatibility through extension identity, public schema, runtime layout, owner/thread binding, and the IPC protocol. A version update alone does not block compaction. Protocol changes can still require an adapter update; accepting a version number does not mean every past or future protocol is supported.
 
-```powershell
-$env:REKALL_ALLOW_UNVERIFIED = '1'
-node ./bridge.mjs probe
-Remove-Item Env:REKALL_ALLOW_UNVERIFIED
-```
+`probe_compaction` reports `compatibility.extensionVersion` for diagnostics. The former `REKALL_ALLOW_UNVERIFIED` setting is no longer needed and has no effect.
 
-For a deliberate macOS or Linux investigation, scope the override to one command:
+Reloaded public history may omit the private `completed` field. Rekall accepts those historical records but does not count them as completion signals. Automatic continuation still requires a newly observed item with `completed: true`. A read-only probe also passed on Windows with extension `26.903.61454`; this is not a live compaction/continuation measurement.
 
-```sh
-REKALL_ALLOW_UNVERIFIED=1 node ./bridge.mjs probe
-```
-
-For MCP, set the variable in the server's launch environment and restart the MCP server. Changing a terminal's environment does not affect an already running server. Only the exact value `1` enables the override.
-
-> **Warning:** An override is not evidence of compatibility. A successful probe reports `compatibility.versionVerification.status: "unverified_override"` and a `UNVERIFIED_EXTENSION_VERSION_OVERRIDE` entry in `compatibility.warnings`. The version gate is the only check bypassed; extension identity, public schema, runtime layout, owner/thread checks, and IPC protocol checks still apply.
-
-Report new versions through the [compatibility issue template](https://github.com/DitriXNew/rekall/issues/new?template=new-extension-version.yml), including the extension version and **redacted** probe output or error. You can report a blocked probe without enabling the override or attempting compaction.
+Report update-related failures through the [compatibility issue template](https://github.com/DitriXNew/rekall/issues/new?template=new-extension-version.yml), including the extension version and **redacted** probe output or error. You do not need to attempt compaction to report a failed probe.
 
 Compatibility checks compare the public App Server schema with the internal completion signal Rekall observes. Before a thread exposes a compaction item, the probe reports `layout_compatible`: the public lifecycle and state layout are compatible, while the private completion field has not yet been observed. Rekall locates a unique extension-bundled executable from the extension's PATH entries: `codex.exe` on Windows or `codex` on macOS or Linux. When that is not possible, set `REKALL_CODEX_BINARY` to its absolute path. Schema generation exports files and exits; it does not start another App Server. Test transports using `REKALL_PIPE` deliberately skip the schema subprocess and production endpoint discovery/validation; do not use this test override for a live socket.
 

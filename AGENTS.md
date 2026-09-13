@@ -26,7 +26,7 @@ Rekall works only with chats owned by the Codex VS Code extension. Standalone Co
 - Never retry automatically after failure, timeout, or an unknown outcome.
 - Never override the thread's permissions or global Codex configuration.
 - Treat extension IPC as internal and re-check compatibility after updates.
-- `REKALL_ALLOW_UNVERIFIED=1` overrides only the extension version gate. Keep its probe warning and all identity, schema, runtime, and IPC checks. Never enable it automatically after a failed probe.
+- Do not gate compatibility on the extension version number. Keep extension identity, public-schema, runtime, owner/thread, and IPC checks; record the version only for diagnostics.
 - Keep `REKALL_CODEX_BINARY` absolute when explicitly configured. A test-only
   `REKALL_PIPE` transport skips the public-schema subprocess by design.
 

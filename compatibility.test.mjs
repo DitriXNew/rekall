@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
-import { inspectRuntimeCompatibility, inspectPublicSchema, findCodexBinary, probeCompatibility,
-  verifiedExtensionVersion } from './compatibility.mjs';
+import { inspectRuntimeCompatibility, inspectPublicSchema, findCodexBinary, probeCompatibility } from './compatibility.mjs';
+import { completedCompactions } from './bridge.mjs';
 
 function fixtures() {
   const item = { properties: { type: { enum: ['contextCompaction'] }, id: { type: 'string' } }, required: ['type', 'id'] };
@@ -74,7 +74,7 @@ test('binary discovery ignores relative and nested lookalike extension paths', (
   }
 });
 
-function probeFixture({ version = verifiedExtensionVersion, publisher = 'openai', name = 'chatgpt',
+function probeFixture({ version = '26.901.22334', publisher = 'openai', name = 'chatgpt',
   env = {}, requests, notifications, state } = {}) {
   const schemas = fixtures();
   const manifest = { publisher, name, version };
@@ -97,35 +97,47 @@ function probeFixture({ version = verifiedExtensionVersion, publisher = 'openai'
   return { result, wasRemoved: () => removed };
 }
 
-test('unknown extension version is rejected by default and exact opt-in returns a warning', async () => {
-  await assert.rejects(probeFixture({ version: '99.0.0' }).result, /Unverified Codex extension version 99\.0\.0/);
-  await assert.rejects(probeFixture({ version: '99.0.0', env: { REKALL_ALLOW_UNVERIFIED: 'true' } }).result,
-    /Unverified Codex extension version/);
-
-  const fixture = probeFixture({ version: '99.0.0', env: { REKALL_ALLOW_UNVERIFIED: '1' } });
-  const result = await fixture.result;
-  assert.equal(result.versionVerification.status, 'unverified_override');
-  assert.equal(result.warnings.length, 1);
-  assert.deepEqual(result.warnings[0], {
-    severity: 'warning',
-    code: 'UNVERIFIED_EXTENSION_VERSION_OVERRIDE',
-    message: 'REKALL_ALLOW_UNVERIFIED=1 bypassed version verification for Codex extension 99.0.0; internal IPC compatibility is not established',
-    extensionVersion: '99.0.0',
-    verifiedExtensionVersion,
-  });
-  assert.equal(result.publicSchema.status, 'compatible');
-  assert.equal(fixture.wasRemoved(), true);
+test('extension versions do not gate compatible protocols', async () => {
+  for (const version of ['26.901.22334', '1.0.0', '99.0.0', '99.0.0-preview.1', null]) {
+    const fixture = probeFixture({ version });
+    const result = await fixture.result;
+    assert.equal(result.extensionVersion, version ?? 'unknown');
+    assert.equal(result.runtime.status, 'layout_compatible');
+    assert.equal(result.publicSchema.status, 'compatible');
+    assert.equal(result.versionVerification, undefined);
+    assert.equal(fixture.wasRemoved(), true);
+  }
 });
 
-test('verified extension version has no compatibility warning', async () => {
-  const { result } = probeFixture();
-  const value = await result;
-  assert.equal(value.versionVerification.status, 'verified');
-  assert.deepEqual(value.warnings, []);
+test('reloaded public history without a private flag is not a completed compaction signal', () => {
+  const item = { type: 'contextCompaction', id: 'synthetic-history' };
+  const state = { requests: [], threadRuntimeStatus: { type: 'idle' }, turns: [],
+    turnHistory: { history: { entitiesByKey: { 'turn:synthetic': { items: [item] } } } } };
+  assert.equal(inspectRuntimeCompatibility(state).status, 'layout_compatible');
+  assert.equal(inspectRuntimeCompatibility(state).completionFieldObserved, false);
+  assert.equal(completedCompactions(state).size, 0);
+  const live = { type: 'contextCompaction', id: 'synthetic-live', completed: false };
+  state.turns.push({ items: [live] });
+  assert.equal(inspectRuntimeCompatibility(state).completionFieldObserved, true);
+  assert.equal(completedCompactions(state).size, 0);
+  live.completed = true;
+  assert.deepEqual([...completedCompactions(state)], ['synthetic-live']);
+  item.completed = 'true';
+  assert.throws(() => inspectRuntimeCompatibility(state), /boolean completed/);
+  delete item.completed;
+  delete item.id;
+  assert.throws(() => inspectRuntimeCompatibility(state), /must have id/);
 });
 
-test('version opt-in does not bypass identity, runtime, or schema safety checks', async () => {
-  const env = { REKALL_ALLOW_UNVERIFIED: '1' };
+test('retired version override has no effect on compatibility results', async () => {
+  const expected = await probeFixture({ version: '99.0.0' }).result;
+  for (const value of ['1', '0', 'true']) {
+    assert.deepEqual(await probeFixture({ version: '99.0.0', env: { REKALL_ALLOW_UNVERIFIED: value } }).result, expected);
+  }
+});
+
+test('arbitrary extension versions still require identity, runtime, and schema checks', async () => {
+  const env = {};
   await assert.rejects(probeFixture({ version: '99.0.0', publisher: 'third-party', env }).result,
     /Unexpected extension identity third-party\.chatgpt/);
   await assert.rejects(probeFixture({ version: '99.0.0', env, state: {} }).result, /state layout/);

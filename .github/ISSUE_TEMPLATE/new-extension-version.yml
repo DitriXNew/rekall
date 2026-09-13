@@ -1,12 +1,12 @@
 name: New extension version
-description: Report a Codex VS Code extension update that Rekall has not verified.
+description: Report a compatibility problem after a Codex VS Code extension update.
 title: "[Compatibility] Codex extension "
 body:
   - type: markdown
     attributes:
       value: |
         Run `probe_compaction` in the affected VS Code extension chat, or `node ./bridge.mjs probe` with that chat's exact `CODEX_THREAD_ID`.
-        Paste the error if the probe fails. You do not need to run compaction or enable the override to report an update.
+        Paste the error if the probe fails. You do not need to run compaction to report an update.
         Redact thread/owner/job/turn IDs, local paths, and any private text. Do not attach raw journals or handoffs.
         Report security defects privately through the repository's Security tab.
   - type: input
@@ -28,16 +28,6 @@ body:
     attributes:
       label: Operating system and Node.js version
       placeholder: "Windows 11, Node.js 22.x"
-    validations:
-      required: true
-  - type: dropdown
-    id: override
-    attributes:
-      label: Was REKALL_ALLOW_UNVERIFIED set to exactly 1 for the probe process?
-      options:
-        - "No"
-        - "Yes"
-        - "Unsure"
     validations:
       required: true
   - type: textarea

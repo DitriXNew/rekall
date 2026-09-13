@@ -5,7 +5,6 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execute = promisify(execFile);
-export const verifiedExtensionVersion = '26.901.22334';
 
 function walk(value, visit) {
   if (!value || typeof value !== 'object') return;
@@ -21,12 +20,19 @@ export function inspectRuntimeCompatibility(state) {
     throw new Error('Unsupported extension state layout; run probe_compaction after checking extension compatibility');
   }
   let observedCompactionItems = 0;
+  // Reloaded public history drops the private completion flag. It is not a
+  // live completion signal and must never authorize continuation by itself.
+  const historicalItems = new Set();
+  walk(state.turnHistory?.history, item => {
+    if (item.type === 'contextCompaction') historicalItems.add(item);
+  });
   const inspect = item => {
     if (item.type !== 'contextCompaction') return;
-    if (typeof item.completed !== 'boolean' || typeof item.id !== 'string' || !item.id) {
+    if (typeof item.id !== 'string' || !item.id ||
+        (typeof item.completed !== 'boolean' && !(historicalItems.has(item) && !Object.hasOwn(item, 'completed')))) {
       throw new Error('Unsupported contextCompaction lifecycle: the internal extension item must have id and boolean completed');
     }
-    observedCompactionItems++;
+    if (typeof item.completed === 'boolean') observedCompactionItems++;
   };
   walk(state.turns, inspect);
   walk(state.turnHistory, inspect);
@@ -102,18 +108,6 @@ export async function probeCompatibility(state, options = {}) {
   if (manifest.publisher !== 'openai' || manifest.name !== 'chatgpt') {
     throw new Error(`Unexpected extension identity ${manifest.publisher ?? 'unknown'}.${manifest.name ?? 'unknown'}; expected openai.chatgpt`);
   }
-  const versionVerified = manifest.version === verifiedExtensionVersion;
-  const unverifiedVersionAllowed = !versionVerified && env.REKALL_ALLOW_UNVERIFIED === '1';
-  if (!versionVerified && !unverifiedVersionAllowed) {
-    throw new Error(`Unverified Codex extension version ${manifest.version ?? 'unknown'}; verified version is ${verifiedExtensionVersion}. To investigate, set REKALL_ALLOW_UNVERIFIED=1 and run probe_compaction; compatibility is not guaranteed`);
-  }
-  const warnings = unverifiedVersionAllowed ? [{
-    severity: 'warning',
-    code: 'UNVERIFIED_EXTENSION_VERSION_OVERRIDE',
-    message: `REKALL_ALLOW_UNVERIFIED=1 bypassed version verification for Codex extension ${manifest.version ?? 'unknown'}; internal IPC compatibility is not established`,
-    extensionVersion: manifest.version ?? 'unknown',
-    verifiedExtensionVersion,
-  }] : [];
   const temporary = makeTemporaryDirectory(path.join(os.tmpdir(), 'rekall-schema-'));
   try {
     // This exports schemas and exits; it does not start another App Server.
@@ -121,9 +115,7 @@ export async function probeCompatibility(state, options = {}) {
       windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024,
     });
     const read = file => JSON.parse(readFile(path.join(temporary, file), 'utf8'));
-    return { extensionVersion: manifest.version,
-      versionVerification: { status: versionVerified ? 'verified' : 'unverified_override', verifiedExtensionVersion },
-      warnings, runtime,
+    return { extensionVersion: manifest.version ?? 'unknown', runtime,
       publicSchema: inspectPublicSchema(read('ClientRequest.json'), read('ServerNotification.json')) };
   } finally {
     // Delete only the exact private temporary directory created above.

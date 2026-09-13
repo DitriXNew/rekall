@@ -14,7 +14,7 @@ The operating-system account, the Codex extension, the installed Rekall code, an
 
 Handoff SHA-256 detects a changed handoff relative to the recorded journal. It is not a signature: a process that can rewrite both the handoff and its journal can also replace the recorded checksum. Handoffs and journals are stored unencrypted under the user's Codex directory, with filesystem permissions inherited from that environment. Treat their contents as private and restrict access to the account and its files.
 
-`REKALL_ALLOW_UNVERIFIED=1` overrides only the extension-version allowlist. It does not establish compatibility, authenticate the pipe, or disable the other validation checks. Use it for deliberate compatibility investigation and inspect the warnings returned by `probe_compaction`.
+Rekall does not use an extension-version allowlist. It checks extension identity, public schema, runtime layout, owner/thread binding, and IPC protocol compatibility regardless of version. These checks do not authenticate the pipe or guarantee compatibility with future protocol changes.
 
 ## Linux socket isolation
 
