@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0 # Verify the skill's immutable instruction-source commit.
       - name: HOL Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@8f857cca6964f5e8c59f1f099b204727b7fb0632 # v1.2.619; scanner 3.0.103
+        uses: hashgraph-online/ai-plugin-scanner-action@b6087cac286c39d504f9d0d8a45778da5ee6f1b9 # v1.2.619; scanner 3.0.103
         with:
           plugin_dir: "."
           mode: scan
